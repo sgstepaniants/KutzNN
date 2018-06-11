@@ -4,6 +4,7 @@ import random
 import torch
 from torch.autograd import Variable
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.metrics import mean_squared_error
