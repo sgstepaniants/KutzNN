@@ -4,10 +4,10 @@ import random
 import torch
 from torch.autograd import Variable
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.metrics import mean_squared_error
+
 
 #******************************************************************************
 # Read Data
@@ -49,16 +49,15 @@ Y_noisy_test = torch.Tensor(X_noisy_output[train_size:])
 # Build Feed-Forward Neural Network
 #******************************************************************************
 # 100 hidden layers
-d1 = 100
+d1 = 10
+d2 = 10
 # build the computational graph
 network_model = torch.nn.Sequential(
                 torch.nn.Linear(d, d1),
                 torch.nn.Sigmoid(),
-                torch.nn.Linear(d1, d1),
+                torch.nn.Linear(d1, d2),
                 torch.nn.Sigmoid(),
-                torch.nn.Linear(d1, d1),
-                torch.nn.Sigmoid(),
-                torch.nn.Linear(d1, d),
+                torch.nn.Linear(d2, d),
                 torch.nn.Sigmoid(),
             )
 
@@ -71,9 +70,9 @@ train_err = []
 test_err = []
 
 # number of epochs/iterations for training the neural net
-num_epochs = 100
-batch_size = 15000
-learning_rate = 0.001
+num_epochs = 1000
+batch_size = 50
+learning_rate = 10
 opt = optim.SGD(network_model.parameters(), lr=learning_rate)
 
 # for each epoch, do a step of SGD and recompute the weights of the neural net
@@ -121,15 +120,25 @@ plt.show()
 # Plot True and Predicted Trajectories On Test Data (after burn-in)
 #******************************************************************************
 # time to plot true and prediction trajectories out to
-tpred = 100
-X_true = X_test.numpy()
+tpred = 1000
+X_true = X_train.numpy()
 Y_true = Y_test.numpy()[0:tpred]
 Y_pred = network_model(Variable(X_test)).data.numpy()[0:tpred]
 
 ax = plt.axes(projection='3d')
-#ax.plot3D(X_true[:, 0], X_true[:, 1], X_true[:, 2], label='burn-in', linewidth=0.5)
-ax.plot3D(Y_true[:, 0], Y_true[:, 1], Y_true[:, 2], label='true')
-ax.plot3D(Y_pred[:, 0], Y_pred[:, 1], Y_pred[:, 2], label='pred')
+
+# plot start 'o' and end '^' points of trajectories
+ax.scatter(X_true[0, 0], X_true[0, 1], X_true[0, 2], s=50, c='g', marker='o')
+ax.scatter(X_true[-1, 0], X_true[-1, 1], X_true[-1, 2], s=50, c='g', marker='^')
+ax.scatter(Y_true[0, 0], Y_true[0, 1], Y_true[0, 2], s=50, c='b', marker='o')
+ax.scatter(Y_true[-1, 0], Y_true[-1, 1], Y_true[-1, 2], s=50, c='b', marker='^')
+ax.scatter(Y_pred[0, 0], Y_pred[0, 1], Y_pred[0, 2], s=50, c='r', marker='o')
+ax.scatter(Y_pred[-1, 0], Y_pred[-1, 1], Y_pred[-1, 2], s=50, c='r', marker='^')
+
+# plot burn-in, true, and predicted trajectories
+ax.plot3D(X_true[:, 0], X_true[:, 1], X_true[:, 2], c='g', label='burn-in')
+ax.plot3D(Y_true[:, 0], Y_true[:, 1], Y_true[:, 2], c='b', label='true')
+ax.plot3D(Y_pred[:, 0], Y_pred[:, 1], Y_pred[:, 2], c='r', label='pred')
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_zlabel('z')
