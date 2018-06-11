@@ -92,7 +92,7 @@ weight_decay  = 1e-5
 opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 # for each epoch, do a step of SGD and recompute the weights of the neural net
-freq = 5
+freq = 100
 for idx in range(num_epochs):
     print(idx)
     # save the train and test errors every time we have sampled freq batches
@@ -120,8 +120,7 @@ for idx in range(num_epochs):
 
 
     # ===================adjusted lr========================
-    if idx % 100 == 0:
-
+    if idx % freq == 0:
         learning_rate *= 0.8
         weight_decay *= 0.8        
         opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
