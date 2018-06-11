@@ -27,6 +27,17 @@ X_noisy_output = X_noisy['output2']
 
 
 #******************************************************************************
+# Rescale data between 0 and 1 for learning
+#******************************************************************************
+Xmin = X_input.min()
+Xmax = X_input.max()
+    
+X_input = ((X_input - Xmin) / (Xmax - Xmin)) 
+X_output = ((X_output - Xmin) / (Xmax - Xmin)) 
+
+
+
+#******************************************************************************
 # Preprocess Data
 #******************************************************************************
 tmax, d = X_input.shape
@@ -45,6 +56,7 @@ X_noisy_test = torch.Tensor(X_noisy_input[train_size:])
 Y_noisy_test = torch.Tensor(X_noisy_output[train_size:])
 
 
+
 #******************************************************************************
 # Build Feed-Forward Neural Network
 #******************************************************************************
@@ -54,9 +66,9 @@ d2 = 10
 # build the computational graph
 network_model = torch.nn.Sequential(
                 torch.nn.Linear(d, d1),
-                torch.nn.Sigmoid(),
+                torch.nn.ReLU(True),
                 torch.nn.Linear(d1, d2),
-                torch.nn.Sigmoid(),
+                torch.nn.ReLU(True),
                 torch.nn.Linear(d2, d),
                 torch.nn.Sigmoid(),
             )
@@ -71,14 +83,18 @@ test_err = []
 
 # number of epochs/iterations for training the neural net
 num_epochs = 1000
-batch_size = 50
-learning_rate = 10
-opt = optim.SGD(network_model.parameters(), lr=learning_rate)
+batch_size = 200
+learning_rate = 0.01
+learning_rate = 0.01
+weight_decay  = 1e-5
+
+
+opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 # for each epoch, do a step of SGD and recompute the weights of the neural net
 freq = 5
 for idx in range(num_epochs):
-    print idx
+    print(idx)
     # save the train and test errors every time we have sampled freq batches
     if idx % freq == 0:
         Y_train_hat = network_model(Variable(X_train)).data
@@ -101,6 +117,7 @@ for idx in range(num_epochs):
     loss.backward()
     # this does the parameter for us!
     opt.step()
+
 
 
 #******************************************************************************
