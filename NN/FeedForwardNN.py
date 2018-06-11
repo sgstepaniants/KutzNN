@@ -85,7 +85,6 @@ test_err = []
 num_epochs = 1000
 batch_size = 200
 learning_rate = 0.01
-learning_rate = 0.01
 weight_decay  = 1e-5
 
 
@@ -118,6 +117,15 @@ for idx in range(num_epochs):
     # this does the parameter for us!
     opt.step()
 
+
+    # ===================adjusted lr========================
+    if idx % 100 == 0:
+
+        learning_rate *= 0.8
+        weight_decay *= 0.8        
+        opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+            
+        
 
 
 #******************************************************************************
