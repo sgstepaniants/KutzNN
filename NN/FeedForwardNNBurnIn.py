@@ -36,7 +36,7 @@ X_noisy_output = X_noisy['output2']
 #******************************************************************************
 Xmin = X_input.min()
 Xmax = X_input.max()
-    
+
 #X_input = ((X_input - Xmin) / (Xmax - Xmin))
 #X_output = ((X_output - Xmin) / (Xmax - Xmin))
 
@@ -122,10 +122,10 @@ train_err = []
 test_err = []
 
 # number of epochs/iterations for training the neural net
-num_epochs = 1000
+num_epochs = 10000
 batch_size = 1000
 learning_rate = 0.01
-weight_decay = 1e-5
+weight_decay = 1e-4
 
 
 opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -161,7 +161,7 @@ for idx in range(num_epochs):
     # ===================adjusted lr========================
     if idx % freq == 0:
         learning_rate *= 0.8
-        weight_decay *= 0.8        
+        weight_decay *= 0.8
         opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 
@@ -177,8 +177,10 @@ plt.xlabel('Effective Epoch')
 plt.ylabel('Mean Squared Error')
 plt.show()
 
-print "Neural Net Min Train MSE: " + str(min(train_err))
-print "Neural Net Min Test MSE: " + str(min(test_err))
+output_text = "Neural Net Min Train MSE: " + str(min(train_err))
+print(output_text)
+output_text = "Neural Net Min Test MSE: " + str(min(test_err))
+print(output_text)
 
 
 #******************************************************************************
@@ -198,7 +200,8 @@ for i in range(num_traj):
         Y_pred[(tmax-burn_in+1)*i+j] = y
         xs = np.concatenate((xs[d:], y))
 
-print "Model MSE: " + str(mean_squared_error(Y, Y_pred))
+output_text = "Model MSE: " + str(mean_squared_error(Y, Y_pred))
+print(output_text)
 
 
 #******************************************************************************
