@@ -101,8 +101,8 @@ Y_noisy_test = torch.Tensor(Y_noisy_shuffled[train_size:])
 #******************************************************************************
 # 2 hidden layers
 di = burn_in * d
-d1 = 10
-d2 = 100
+d1 = 100
+d2 = 1000
 df = d
 # build the computational graph
 network_model = torch.nn.Sequential(
@@ -110,9 +110,8 @@ network_model = torch.nn.Sequential(
                 torch.nn.ReLU(True),
                 torch.nn.Linear(d1, d2),
                 torch.nn.ReLU(True),
-                torch.nn.Linear(d2, df)
+                torch.nn.Linear(d2, df),
             )
-
 
 #******************************************************************************
 # Train Feed-Forward Neural Network
@@ -122,7 +121,7 @@ train_err = []
 test_err = []
 
 # number of epochs/iterations for training the neural net
-num_epochs = 10000
+num_epochs = 5000
 batch_size = 1000
 learning_rate = 0.01
 weight_decay = 1e-4
@@ -160,9 +159,10 @@ for idx in range(num_epochs):
 
     # ===================adjusted lr========================
     if idx % freq == 0:
-        learning_rate *= 0.8
-        weight_decay *= 0.8
-        opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        if idx < 2000:
+            learning_rate *= 0.8
+            weight_decay *= 0.5
+            opt = optim.Adam(network_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 
 #******************************************************************************
