@@ -33,13 +33,20 @@ def rms_error(truth, pred):
     return rms(truth - pred)
 
 
-def falloff_time(truth, pred, threshold=6):
+def falloff_time(truth, pred, threshold=7):
     if truth.shape != pred.shape:
         raise ValueError(f"The shape of pred is {pred.shape} but truth has "
                          f"shape {truth.shape}")
 
     rms = rms_error(truth, pred)
-    return np.searchsorted(rms > threshold, True)
+    for i in range(rms.shape[0]):
+        if rms[i] > threshold:
+            break
+    return i
+
+
+def auc(truth, pred):
+    return np.sqrt(((truth-pred)**2).mean())
 
 
 def main():
@@ -49,7 +56,12 @@ def main():
     truth = load(truth)
     pred = load(pred)
 
-    print(falloff_time(truth, pred))
+    scores = [
+        falloff_time(truth, pred),
+        auc(truth, pred)
+    ]
+
+    print('%d,%.4f'%(scores[0], scores[1]))
 
 
 if __name__ == '__main__':

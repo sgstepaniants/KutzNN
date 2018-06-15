@@ -1,4 +1,8 @@
+from IPython import get_ipython
+get_ipython().magic('reset -sf')
+
 from scipy.io import loadmat
+import os
 import numpy as np
 import random
 import torch
@@ -24,18 +28,12 @@ X_input = X['input']
 X_output = X['output']
 # Note that X_input and X_output are data from the same particles so they overlap for tmax-2 time points
 
-X_noisy = loadmat('../Data/TestData2.mat')
-# X_noisy_input is X_input with noise added on top
-X_noisy_input = X_noisy['input2']
-# X_noisy_output is X_output with noise added on top
-X_noisy_output = X_noisy['output2']
-
 
 #******************************************************************************
 # Rescale data between 0 and 1 for learning
 #******************************************************************************
-Xmin = X_input.min()
-Xmax = X_input.max()
+#Xmin = X_input.min()
+#Xmax = X_input.max()
 
 #X_input = ((X_input - Xmin) / (Xmax - Xmin))
 #X_output = ((X_output - Xmin) / (Xmax - Xmin))
@@ -66,34 +64,11 @@ idx = random.sample(range(0, num_traj * (tmax - burn_in + 1)), num_traj * (tmax 
 X_shuffled = X[idx]
 Y_shuffled = Y[idx]
 
-# format the noisy data for the neural net
-X_noisy = np.zeros((num_traj * tmax, burn_in * d))
-Y_noisy = np.zeros((num_traj * tmax, d))
-
-for i in range(num_traj):
-    for j in range(tmax-burn_in+1):
-        # get previous burn_in time points
-        x = X_noisy_input[tmax*i+j:tmax*i+j+burn_in].flatten()
-        # get the next time point
-        y = X_noisy_output[tmax*i+j+burn_in-1]
-        X_noisy[(tmax-burn_in + 1)*i+j] = x
-        Y_noisy[(tmax-burn_in+1)*i+j] = y
-
-# shuffle the data
-idx = random.sample(range(0, num_traj * tmax), num_traj * tmax)
-X_noisy_shuffled = X_noisy[idx]
-Y_noisy_shuffled = Y_noisy[idx]
-
 # split data into test and train sets
 X_train = torch.Tensor(X_shuffled[0:train_size])
 Y_train = torch.Tensor(Y_shuffled[0:train_size])
 X_test = torch.Tensor(X_shuffled[train_size:])
 Y_test = torch.Tensor(Y_shuffled[train_size:])
-
-X_noisy_train = torch.Tensor(X_noisy_shuffled[0:train_size])
-Y_noisy_train = torch.Tensor(Y_noisy_shuffled[0:train_size])
-X_noisy_test = torch.Tensor(X_noisy_shuffled[train_size:])
-Y_noisy_test = torch.Tensor(Y_noisy_shuffled[train_size:])
 
 
 #******************************************************************************
@@ -121,7 +96,7 @@ train_err = []
 test_err = []
 
 # number of epochs/iterations for training the neural net
-num_epochs = 5000
+num_epochs = 15000
 batch_size = 1000
 learning_rate = 0.01
 weight_decay = 1e-4
@@ -187,20 +162,25 @@ print(output_text)
 # Apply Neural Net Several Times to Predict Future Points
 #******************************************************************************
 # the true future evolution of all particles (after the first burn_in points)
-Y_true = Y
+Y_true = np.empty_like(X_input)
+Y_true[:] = X_input
 # the predicted future evolution of all particles (after the first burn_in points)
-Y_pred = np.zeros((num_traj * (tmax - burn_in + 1), d))
+Y_pred = np.empty_like(X_input)
+Y_pred[:] = X_input
 
 for i in range(num_traj):
-    for j in range(tmax-burn_in+1):
+    for j in range(tmax-burn_in):
         # get previous burn_in time points
-        xs = X_input[tmax*i+j:tmax*i+j+burn_in].flatten()
+        xs = Y_pred[tmax*i+j:tmax*i+j+burn_in].flatten()
         # get the next time point from the neural net
         y = network_model(Variable(torch.Tensor(xs))).data.numpy()
-        Y_pred[(tmax-burn_in+1)*i+j] = y
-        xs = np.concatenate((xs[d:], y))
+        Y_pred[tmax*i+burn_in+j] = y
+        print tmax*i+burn_in+j
 
-output_text = "Model MSE: " + str(mean_squared_error(Y, Y_pred))
+output_text = "Model MSE: " + str(mean_squared_error(Y_true, Y_pred))
+print(output_text)
+
+output_text = "Model R2: " + str(np.corrcoef(Y_true.flatten(), Y_pred.flatten()))
 print(output_text)
 
 
@@ -208,27 +188,39 @@ print(output_text)
 # Plot True and Model Predicted Trajectories On Test Data (no burn-in)
 #******************************************************************************
 # trajectory number to plot (100 trajectories in total)
-traj = 0
+traj = 10
+pred_time = 100
 burn_in_traj = X_input[tmax*traj:tmax*traj+burn_in]
-true_traj = Y_true[traj*(tmax-burn_in+1):(traj+1)*(tmax-burn_in+1)]
-pred_traj = Y_pred[traj*(tmax-burn_in+1):(traj+1)*(tmax-burn_in+1)]
+true_traj = Y_true[traj*tmax:(traj+1)*tmax]
+pred_traj = Y_pred[traj*tmax:(traj+1)*tmax]
 
 ax = plt.axes(projection='3d')
 
 # plot start 'o' and end '^' points of trajectories
 ax.scatter(burn_in_traj[0, 0], burn_in_traj[0, 1], burn_in_traj[0, 2], s=50, c='g', marker='o')
 ax.scatter(burn_in_traj[-1, 0], burn_in_traj[-1, 1], burn_in_traj[-1, 2], s=50, c='g', marker='^')
-ax.scatter(true_traj[0, 0], true_traj[0, 1], true_traj[0, 2], s=50, c='b', marker='o')
 ax.scatter(true_traj[-1, 0], true_traj[-1, 1], true_traj[-1, 2], s=50, c='b', marker='^')
-ax.scatter(pred_traj[0, 0], pred_traj[0, 1], pred_traj[0, 2], s=50, c='r', marker='o')
 ax.scatter(pred_traj[-1, 0], pred_traj[-1, 1], pred_traj[-1, 2], s=50, c='r', marker='^')
 
 # plot true, and predicted trajectories
-ax.plot3D(burn_in_traj[:, 0], burn_in_traj[:, 1], burn_in_traj[:, 2], c='g', label='burn in')
 ax.plot3D(true_traj[:, 0], true_traj[:, 1], true_traj[:, 2], c='b', label='true')
 ax.plot3D(pred_traj[:, 0], pred_traj[:, 1], pred_traj[:, 2], c='r', label='pred')
+ax.plot3D(burn_in_traj[:, 0], burn_in_traj[:, 1], burn_in_traj[:, 2], c='g', label='burn in')
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_zlabel('z')
 ax.legend()
 plt.show()
+
+
+#******************************************************************************
+# Output CSV File of Predicted Trajectories
+#******************************************************************************
+filename = "../PowerRangers/a_burn_in.csv"
+if not os.path.exists(os.path.dirname(filename)):
+    try:
+        os.makedirs(os.path.dirname(filename))
+    except OSError as exc: # Guard against race condition
+        if exc.errno != errno.EEXIST:
+            raise
+np.savetxt(filename, Y_pred, delimiter=",")
